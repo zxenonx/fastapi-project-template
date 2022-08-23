@@ -116,20 +116,17 @@ def create_access_token(
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    to_encode["exp"] = expire
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def authenticate_user(
     get_user: Callable, username: str, password: str
 ) -> Union[User, bool]:
-    user = get_user(username)
-    if not user:
+    if user := get_user(username):
+        return user if verify_password(password, user.password) else False
+    else:
         return False
-    if not verify_password(password, user.password):
-        return False
-    return user
 
 
 def get_user(username) -> Optional[User]:

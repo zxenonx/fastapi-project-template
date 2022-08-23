@@ -21,8 +21,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[UserResponse], dependencies=[AdminUser])
 async def list_users(*, session: Session = ActiveSession):
-    users = session.exec(select(User)).all()
-    return users
+    return session.exec(select(User)).all()
 
 
 @router.post("/", response_model=UserResponse, dependencies=[AdminUser])
@@ -58,7 +57,7 @@ async def update_user_password(
             status_code=403, detail="You can't update this user password"
         )
 
-    if not patch.password == patch.password_confirm:
+    if patch.password != patch.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords don't match")
 
     # Update the password
@@ -78,16 +77,15 @@ async def update_user_password(
 async def query_user(
     *, session: Session = ActiveSession, user_id_or_username: Union[str, int]
 ):
-    user = session.query(User).where(
+    if user := session.query(User).where(
         or_(
             User.id == user_id_or_username,
             User.username == user_id_or_username,
         )
-    )
-
-    if not user:
+    ):
+        return user.first()
+    else:
         raise HTTPException(status_code=404, detail="User not found")
-    return user.first()
 
 
 @router.get("/me/", response_model=UserResponse)
