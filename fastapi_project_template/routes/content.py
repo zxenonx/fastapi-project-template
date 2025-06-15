@@ -13,23 +13,22 @@ router = APIRouter()
 
 @router.get("/", response_model=List[ContentResponse])
 async def list_contents(*, session: Session = ActiveSession):
-    contents = session.exec(select(Content)).all()
-    return contents
+    return session.exec(select(Content)).all()
 
 
 @router.get("/{id_or_slug}/", response_model=ContentResponse)
 async def query_content(
     *, id_or_slug: Union[str, int], session: Session = ActiveSession
 ):
-    content = session.query(Content).where(
+    if content := session.query(Content).where(
         or_(
             Content.id == id_or_slug,
             Content.slug == id_or_slug,
         )
-    )
-    if not content:
+    ):
+        return content.first()
+    else:
         raise HTTPException(status_code=404, detail="Content not found")
-    return content.first()
 
 
 @router.post(
